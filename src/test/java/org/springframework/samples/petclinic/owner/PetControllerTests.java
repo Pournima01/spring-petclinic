@@ -38,8 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
  *
  * @author Colin But
  */
-@WebMvcTest(value = PetController.class,
-		includeFilters = @ComponentScan.Filter(value = PetTypeFormatter.class, type = FilterType.ASSIGNABLE_TYPE))
+@WebMvcTest(value = PetController.class, includeFilters = @ComponentScan.Filter(value = PetTypeFormatter.class, type = FilterType.ASSIGNABLE_TYPE))
 class PetControllerTests {
 
 	private static final int TEST_OWNER_ID = 1;
@@ -63,6 +62,11 @@ class PetControllerTests {
 		given(this.pets.findPetTypes()).willReturn(Lists.newArrayList(cat));
 		given(this.owners.findById(TEST_OWNER_ID)).willReturn(new Owner());
 		given(this.pets.findById(TEST_PET_ID)).willReturn(new Pet());
+
+		Pet tingo = new Pet();
+		tingo.setName("Tingo");
+		owners.findById(1).addPet(tingo);
+		tingo.setId(1);
 
 	}
 
@@ -89,6 +93,16 @@ class PetControllerTests {
 	}
 
 	@Test
+	void testProcessCreationFormHasNameError() throws Exception {
+		mockMvc.perform(
+				post("/owners/{ownerId}/pets/new", TEST_OWNER_ID).param("name", "").param("birthDate", "2015-02-12"))
+				.andExpect(model().attributeHasNoErrors("owner")).andExpect(model().attributeHasErrors("pet"))
+				.andExpect(model().attributeHasFieldErrors("pet", "type"))
+				.andExpect(model().attributeHasFieldErrorCode("pet", "type", "required")).andExpect(status().isOk())
+				.andExpect(view().name("pets/createOrUpdatePetForm"));
+	}
+
+	@Test
 	void testInitUpdateForm() throws Exception {
 		mockMvc.perform(get("/owners/{ownerId}/pets/{petId}/edit", TEST_OWNER_ID, TEST_PET_ID))
 				.andExpect(status().isOk()).andExpect(model().attributeExists("pet"))
@@ -110,4 +124,12 @@ class PetControllerTests {
 				.andExpect(view().name("pets/createOrUpdatePetForm"));
 	}
 
+	@Test
+	void testProcessCreationFormDuplicateName() throws Exception {
+		mockMvc.perform(post("/owners/{ownerId}/pets/new", 1).param("name", "Tingo").param("type", "hamster")
+				.param("birthDate", "2015-02-12"))
+				.andExpect(model().attributeHasFieldErrorCode("pet", "name", "duplicate"))
+				.andExpect(view().name("pets/createOrUpdatePetForm"));
+
+	}
 }

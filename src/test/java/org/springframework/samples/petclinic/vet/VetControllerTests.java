@@ -60,6 +60,7 @@ class VetControllerTests {
 		radiology.setId(1);
 		radiology.setName("radiology");
 		helen.addSpecialty(radiology);
+		//helen.setSpecialtiesInternal(helen.getSpecialtiesInternal());
 		given(this.vets.findAll()).willReturn(Lists.newArrayList(james, helen));
 	}
 
